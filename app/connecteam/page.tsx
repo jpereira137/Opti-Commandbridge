@@ -18,7 +18,9 @@ interface SyncResult {
   status: "connected" | "error" | "rate_limited"
   users: Array<{ id: string; firstName: string; lastName: string; email: string }>
   shifts: Array<{ id: string; userId: string; startTime: string; endTime: string }>
-  timeEntries: Array<{ id: string; userId: string; clockIn: string; clockOut?: string; status: string }>
+  timeEntries: Array<{ id: string; userId: string; clockIn: string; clockOut?: string; status: string; hours?: number }>
+  timeClocks: Array<{ id: number; name: string; isArchived: boolean }>
+  schedulers: Array<{ schedulerId: number; name: string; isArchived: boolean; timezone: string }>
   lastSync: string
   error?: string
 }
@@ -85,19 +87,27 @@ export default function ConnecteamPage() {
         employeeCount: apiResult.users.length,
         activeCount: apiResult.timeEntries.filter(t => t.status === "active").length,
         shiftsToday: apiResult.shifts.filter(s => s.startTime.startsWith(new Date().toISOString().split("T")[0])).length,
+        totalShifts: apiResult.shifts.length,
+        totalTimeEntries: apiResult.timeEntries.length,
+        timeClocks: apiResult.timeClocks || [],
+        schedulers: apiResult.schedulers || [],
         lastSync: apiResult.lastSync,
         isLive: true,
         error: undefined,
       }
     }
 
-    if (apiResult && apiResult.status === "error") {
+    if (apiResult && (apiResult.status === "error" || apiResult.status === "rate_limited")) {
       return {
-        status: "error" as const,
+        status: apiResult.status as "error" | "rate_limited",
         users: [],
         employeeCount: 0,
         activeCount: 0,
         shiftsToday: 0,
+        totalShifts: 0,
+        totalTimeEntries: 0,
+        timeClocks: [],
+        schedulers: [],
         lastSync: apiResult.lastSync,
         isLive: false,
         error: apiResult.error,
@@ -106,11 +116,15 @@ export default function ConnecteamPage() {
 
     // Fallback to mock data
     return {
-      status: mockStatus?.status || "connected",
+      status: (mockStatus?.status || "connected") as "connected" | "error" | "rate_limited",
       users: mockEmps.map(e => ({ id: e.id, firstName: e.firstName, lastName: e.lastName, email: e.email })),
       employeeCount: mockEmps.length,
       activeCount: mockActive.length,
       shiftsToday: mockShifts.filter(s => s.date === new Date().toISOString().split("T")[0]).length,
+      totalShifts: mockShifts.length,
+      totalTimeEntries: mockActive.length,
+      timeClocks: [],
+      schedulers: [],
       lastSync: mockStatus?.lastSync || new Date().toISOString(),
       isLive: false,
       error: undefined,
@@ -219,7 +233,7 @@ export default function ConnecteamPage() {
                   {[
                     { label: "Employees", value: data.employeeCount, icon: Users },
                     { label: "Clocked in", value: data.activeCount, icon: Clock },
-                    { label: "Shifts today", value: data.shiftsToday, icon: Calendar },
+                    { label: "Shifts (7 days)", value: data.totalShifts, icon: Calendar },
                   ].map(m => (
                     <div key={m.label} className="bg-slate-50 rounded-xl p-3 text-center">
                       <m.icon size={14} className="text-slate-400 mx-auto mb-1" />
@@ -228,6 +242,37 @@ export default function ConnecteamPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Time Clocks & Schedulers */}
+                {data.isLive && (data.timeClocks.length > 0 || data.schedulers.length > 0) && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs font-semibold text-blue-800 mb-2">Connected Resources</p>
+                    {data.timeClocks.length > 0 && (
+                      <div className="mb-2">
+                        <p className="text-[10px] text-blue-600 font-medium">Time Clocks:</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {data.timeClocks.filter(tc => !tc.isArchived).map(tc => (
+                            <span key={tc.id} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                              {tc.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {data.schedulers.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-blue-600 font-medium">Schedulers:</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {data.schedulers.filter(s => !s.isArchived).map(s => (
+                            <span key={s.schedulerId} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Employee list */}
                 <div className="space-y-2 mb-4">
