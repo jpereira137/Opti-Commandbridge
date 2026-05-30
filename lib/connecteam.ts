@@ -3,6 +3,11 @@
 
 const BASE_URL = "https://api.connecteam.com"
 
+// Rate limiting: delay between requests to avoid 429 errors
+const REQUEST_DELAY_MS = 2000  // 2 seconds between requests
+const MAX_RETRIES = 5
+const RETRY_DELAY_MS = 10000   // Start with 10 second retry delay (exponential)
+
 export type ConnecteamAccount = "A" | "B"
 
 export interface ConnecteamUser {
@@ -69,10 +74,16 @@ function getApiKey(account: ConnecteamAccount): string | undefined {
     : process.env.CONNECTEAM_API_KEY_2
 }
 
+// Helper to add delay between requests
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function fetchFromConnecteam<T>(
   endpoint: string, 
   apiKey: string,
-  options?: RequestInit
+  options?: RequestInit,
+  retryCount = 0
 ): Promise<T> {
   const url = `${BASE_URL}${endpoint}`
   console.log(`[Connecteam] Fetching: ${url}`)
@@ -86,6 +97,15 @@ async function fetchFromConnecteam<T>(
       ...options?.headers,
     },
   })
+
+  // Handle rate limiting with retry
+  if (response.status === 429 && retryCount < MAX_RETRIES) {
+    const retryAfter = parseInt(response.headers.get("Retry-After") || String(RETRY_DELAY_MS / 1000), 10)
+    const waitTime = (retryAfter * 1000) || (RETRY_DELAY_MS * Math.pow(2, retryCount))
+    console.log(`[Connecteam] Rate limited, waiting ${waitTime}ms before retry ${retryCount + 1}/${MAX_RETRIES}`)
+    await delay(waitTime)
+    return fetchFromConnecteam<T>(endpoint, apiKey, options, retryCount + 1)
+  }
 
   if (!response.ok) {
     const errorText = await response.text()
@@ -324,12 +344,25 @@ export async function syncAccount(account: ConnecteamAccount): Promise<Connectea
       }
     }
 
-    // Fetch users, time clocks, and schedulers in parallel
-    const [users, timeClocks, schedulers] = await Promise.all([
-      getUsers(account).catch(e => { console.error("[Connecteam] Users fetch failed:", e); return [] as ConnecteamUser[] }),
-      getTimeClocks(account).catch(e => { console.error("[Connecteam] Time clocks fetch failed:", e); return [] as ConnecteamTimeClock[] }),
-      getSchedulers(account).catch(e => { console.error("[Connecteam] Schedulers fetch failed:", e); return [] as ConnecteamScheduler[] }),
-    ])
+    // Fetch data SEQUENTIALLY to avoid rate limiting
+    // Add delay between each request
+    await delay(REQUEST_DELAY_MS)
+    const users = await getUsers(account).catch(e => { 
+      console.error("[Connecteam] Users fetch failed:", e)
+      return [] as ConnecteamUser[] 
+    })
+    
+    await delay(REQUEST_DELAY_MS)
+    const timeClocks = await getTimeClocks(account).catch(e => { 
+      console.error("[Connecteam] Time clocks fetch failed:", e)
+      return [] as ConnecteamTimeClock[] 
+    })
+    
+    await delay(REQUEST_DELAY_MS)
+    const schedulers = await getSchedulers(account).catch(e => { 
+      console.error("[Connecteam] Schedulers fetch failed:", e)
+      return [] as ConnecteamScheduler[] 
+    })
 
     // Date ranges for time activities (YYYY-MM-DD format)
     const today = new Date()
@@ -342,29 +375,29 @@ export async function syncAccount(account: ConnecteamAccount): Promise<Connectea
     const startTimestamp = Math.floor(today.getTime() / 1000)
     const endTimestamp = Math.floor(weekAhead.getTime() / 1000)
 
-    // Fetch time entries from all active time clocks
-    const timeEntryPromises = timeClocks
-      .filter(tc => !tc.isArchived)
-      .map(tc => getTimeActivities(account, tc.id, startDateStr, endDateStr).catch(e => {
+    // Fetch time entries from all active time clocks SEQUENTIALLY
+    const timeEntries: ConnecteamTimeEntry[] = []
+    for (const tc of timeClocks.filter(tc => !tc.isArchived)) {
+      await delay(REQUEST_DELAY_MS)
+      try {
+        const entries = await getTimeActivities(account, tc.id, startDateStr, endDateStr)
+        timeEntries.push(...entries)
+      } catch (e) {
         console.error(`[Connecteam] Time activities fetch failed for clock ${tc.id}:`, e)
-        return [] as ConnecteamTimeEntry[]
-      }))
+      }
+    }
 
-    // Fetch shifts from all active schedulers
-    const shiftPromises = schedulers
-      .filter(s => !s.isArchived)
-      .map(s => getShifts(account, s.schedulerId, startTimestamp, endTimestamp).catch(e => {
+    // Fetch shifts from all active schedulers SEQUENTIALLY
+    const shifts: ConnecteamShift[] = []
+    for (const s of schedulers.filter(s => !s.isArchived)) {
+      await delay(REQUEST_DELAY_MS)
+      try {
+        const schShifts = await getShifts(account, s.schedulerId, startTimestamp, endTimestamp)
+        shifts.push(...schShifts)
+      } catch (e) {
         console.error(`[Connecteam] Shifts fetch failed for scheduler ${s.schedulerId}:`, e)
-        return [] as ConnecteamShift[]
-      }))
-
-    const [timeEntriesArrays, shiftsArrays] = await Promise.all([
-      Promise.all(timeEntryPromises),
-      Promise.all(shiftPromises),
-    ])
-
-    const timeEntries = timeEntriesArrays.flat()
-    const shifts = shiftsArrays.flat()
+      }
+    }
 
     return {
       account,
@@ -393,11 +426,11 @@ export async function syncAccount(account: ConnecteamAccount): Promise<Connectea
 }
 
 export async function syncAllAccounts(): Promise<ConnecteamSyncResult[]> {
-  const results = await Promise.all([
-    syncAccount("A"),
-    syncAccount("B"),
-  ])
-  return results
+  // Sync accounts SEQUENTIALLY to avoid rate limiting
+  const resultA = await syncAccount("A")
+  await delay(REQUEST_DELAY_MS * 2) // Extra delay between accounts
+  const resultB = await syncAccount("B")
+  return [resultA, resultB]
 }
 
 export function hasApiKey(account: ConnecteamAccount): boolean {

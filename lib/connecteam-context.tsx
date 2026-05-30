@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react"
 import type { ConnecteamSyncResult, ConnecteamUser, ConnecteamShift, ConnecteamTimeEntry, ConnecteamTimeClock, ConnecteamScheduler } from "./connecteam"
 import { MOCK_EMPLOYEES, MOCK_SHIFTS, MOCK_TIME_ENTRIES, MOCK_CONNECTEAM_STATUS, type Employee, type Shift, type TimeEntry } from "./data"
 
@@ -135,12 +135,23 @@ function mergeConnecteamTimeEntries(apiAccounts: ConnecteamSyncResult[], employe
 
 export function ConnecteamProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<ConnecteamSyncResult[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)  // Start as false - no auto-load
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSync, setLastSync] = useState<Date | null>(null)
   
+  // Mutex to prevent concurrent syncs
+  const syncLockRef = useRef(false)
+  
   const sync = useCallback(async () => {
+    // Prevent concurrent syncs
+    if (syncLockRef.current) {
+      console.log("[Connecteam] Sync already in progress, skipping")
+      return
+    }
+    
+    syncLockRef.current = true
     setIsSyncing(true)
+    
     try {
       const res = await fetch("/api/connecteam/sync", { method: "POST" })
       const data = await res.json()
@@ -152,6 +163,7 @@ export function ConnecteamProvider({ children }: { children: ReactNode }) {
       console.error("Failed to sync Connecteam data:", error)
     } finally {
       setIsSyncing(false)
+      syncLockRef.current = false
     }
   }, [])
   
@@ -159,14 +171,8 @@ export function ConnecteamProvider({ children }: { children: ReactNode }) {
     await sync()
   }, [sync])
   
-  // Auto-sync on mount
-  useEffect(() => {
-    const init = async () => {
-      await sync()
-      setIsLoading(false)
-    }
-    init()
-  }, [sync])
+  // NO auto-sync on mount - user must click Sync button
+  // This prevents rate limiting from too many concurrent requests
   
   // Derive merged data
   const isLive = accounts.some(a => a.status === "connected" && a.users.length > 0)
