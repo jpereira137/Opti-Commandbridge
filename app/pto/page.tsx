@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarCheck, Plus, Check, X, Clock, AlertCircle } from "lucide-react"
+import { CalendarCheck, Plus, Check, X } from "lucide-react"
 import Header from "@/components/layout/Header"
-import { Card, Button, Avatar, Badge, EmptyState } from "@/components/ui"
+import { Card, Button, Avatar, EmptyState } from "@/components/ui"
 import { MOCK_PTO_REQUESTS, MOCK_PTO_BALANCES, MOCK_EMPLOYEES, getStatusColor } from "@/lib/data"
 
 const TYPE_COLORS: Record<string,string> = {
@@ -21,7 +21,7 @@ export default function PTOPage() {
   const filtered = requests.filter(r => filter === "all" || r.status === filter)
   const pending = requests.filter(r => r.status === "pending").length
 
-  const approve = (id: string) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" as const, approvedAt: new Date().toISOString() } : r))
+  const approve = (id: string) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "approved" as const } : r))
   const deny = (id: string) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "denied" as const } : r))
 
   return (
@@ -53,7 +53,7 @@ export default function PTOPage() {
 
         {/* PTO Balances */}
         <Card className="p-5">
-          <h3 className="font-semibold text-slate-800 mb-4">Employee PTO balances — 2024</h3>
+          <h3 className="font-semibold text-slate-800 mb-4">Employee PTO balances — 2026</h3>
           <div className="space-y-3">
             {MOCK_PTO_BALANCES.map(bal => {
               const emp = MOCK_EMPLOYEES.find(e => e.id === bal.employeeId)
@@ -113,13 +113,13 @@ export default function PTOPage() {
                   <Avatar name={req.employeeName} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-800">{req.employeeName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{req.reason}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{req.note}</p>
                   </div>
                   <span className={`badge ${TYPE_COLORS[req.type] || "bg-gray-100 text-gray-700"} capitalize`}>{req.type}</span>
                   <div className="text-xs text-slate-500 text-right hidden sm:block w-32">
                     <p>{req.startDate}</p>
-                    {req.endDate !== req.startDate && <p>→ {req.endDate}</p>}
-                    <p className="font-medium text-slate-700">{req.days}d</p>
+                    {req.endDate !== req.startDate && <p className="text-slate-400">to {req.endDate}</p>}
+                    <p className="font-medium text-slate-700">{req.days} day{req.days > 1 ? "s" : ""}</p>
                   </div>
                   <span className={`badge ${getStatusColor(req.status)} capitalize`}>{req.status}</span>
                   {req.status === "pending" && (

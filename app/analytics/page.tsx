@@ -1,5 +1,5 @@
 "use client"
-import { EMPLOYEES, TIME_ENTRIES, PTO_REQUESTS, REVIEWS } from "@/lib/data"
+import { EMPLOYEES, MOCK_TIME_ENTRIES, MOCK_PTO_REQUESTS, MOCK_REVIEWS } from "@/lib/data"
 
 function Bar({ label, value, max, color }: { label:string; value:number; max:number; color:string }) {
   const pct = Math.round((value/max)*100)
@@ -24,11 +24,12 @@ export default function Analytics() {
     type:t.replace("Full-time ","FT ").replace("Part-time ","PT "),
     count:EMPLOYEES.filter(e=>e.employmentType===t).length
   }))
-  const ct1 = EMPLOYEES.filter(e=>e.connecteamAccount===1&&e.status==="active").length
-  const ct2 = EMPLOYEES.filter(e=>e.connecteamAccount===2&&e.status==="active").length
-  const avgRating = (REVIEWS.filter(r=>r.overallRating>0).reduce((a,r)=>a+r.overallRating,0)/REVIEWS.filter(r=>r.overallRating>0).length).toFixed(1)
-  const ptoUsed = PTO_REQUESTS.filter(p=>p.status==="approved").reduce((a,p)=>a+p.days,0)
-  const totalHours = TIME_ENTRIES.reduce((a,t)=>a+t.hours,0)
+  const ct1 = EMPLOYEES.filter(e=>e.connecteamAccount==="A"&&e.status==="active").length
+  const ct2 = EMPLOYEES.filter(e=>e.connecteamAccount==="B"&&e.status==="active").length
+  const reviewsWithRating = MOCK_REVIEWS.filter(r=>r.overallRating>0)
+  const avgRating = reviewsWithRating.length > 0 ? (reviewsWithRating.reduce((a,r)=>a+r.overallRating,0)/reviewsWithRating.length).toFixed(1) : "N/A"
+  const ptoUsed = MOCK_PTO_REQUESTS.filter(p=>p.status==="approved").reduce((a,p)=>a+p.days,0)
+  const totalHours = MOCK_TIME_ENTRIES.reduce((a,t)=>a+(t.hours||0),0)
 
   return (
     <div>
@@ -44,7 +45,7 @@ export default function Analytics() {
           {label:"Avg performance",value:avgRating+"/5",sub:"Q1 2026 reviews"},
           {label:"PTO days used",value:ptoUsed,sub:"Approved requests"},
           {label:"Hours tracked",value:totalHours.toFixed(0),sub:"This pay period"},
-          {label:"Pending approvals",value:TIME_ENTRIES.filter(t=>t.status==="pending").length+PTO_REQUESTS.filter(p=>p.status==="pending").length,sub:"Time + PTO"},
+          {label:"Pending approvals",value:MOCK_TIME_ENTRIES.filter(t=>t.status==="pending").length+MOCK_PTO_REQUESTS.filter(p=>p.status==="pending").length,sub:"Time + PTO"},
         ].map(k=>(
           <div key={k.label} className="kpi-card">
             <div className="kpi-value">{k.value}</div>
@@ -65,12 +66,12 @@ export default function Analytics() {
         </div>
         <div className="card">
           <div className="card-title" style={{marginBottom:16}}>Connecteam distribution</div>
-          <Bar label="Account 1 — Operations" value={ct1} max={10} color="#1d4ed8"/>
-          <Bar label="Account 2 — HR/Support/Finance" value={ct2} max={10} color="#6d28d9"/>
+          <Bar label="Account A — Operations" value={ct1} max={10} color="#1d4ed8"/>
+          <Bar label="Account B — HR/Support/Finance" value={ct2} max={10} color="#6d28d9"/>
           <div style={{marginTop:16,padding:"12px",background:"#f8fafc",borderRadius:8}}>
             <div style={{fontSize:12,color:"#64748b",marginBottom:8,fontWeight:600}}>PTO by type</div>
             {["vacation","sick","personal","bereavement"].map(t=>(
-              <Bar key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} value={PTO_REQUESTS.filter(p=>p.type===t as "vacation").reduce((a,p)=>a+p.days,0)} max={10} color="#16a34a"/>
+              <Bar key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} value={MOCK_PTO_REQUESTS.filter(p=>p.type===t as "vacation").reduce((a,p)=>a+p.days,0)} max={10} color="#16a34a"/>
             ))}
           </div>
         </div>

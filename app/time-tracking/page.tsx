@@ -1,13 +1,13 @@
 "use client"
 import { useState } from "react"
-import { TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
+import { MOCK_TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
 import { CheckCircle2, Clock, Download } from "lucide-react"
 
 export default function TimeTracking() {
-  const [entries,setEntries] = useState(TIME_ENTRIES)
+  const [entries,setEntries] = useState(MOCK_TIME_ENTRIES)
   const approve = (id:string) => setEntries(prev=>prev.map(t=>t.id===id?{...t,status:"approved" as const}:t))
   const pending = entries.filter(t=>t.status==="pending").length
-  const totalHours = entries.reduce((a,t)=>a+t.hours,0).toFixed(1)
+  const totalHours = entries.reduce((a,t)=>a+(t.hours || 0),0).toFixed(1)
 
   return (
     <div>
@@ -56,17 +56,19 @@ export default function TimeTracking() {
                   </td>
                   <td style={{fontSize:13}}>{fmtDate(t.date)}</td>
                   <td style={{fontSize:13,fontFamily:"monospace"}}>{t.clockIn}</td>
-                  <td style={{fontSize:13,fontFamily:"monospace"}}>{t.clockOut}</td>
-                  <td style={{fontSize:13,fontWeight:700,color:"#1B2B4B"}}>{t.hours.toFixed(1)} hrs</td>
-                  <td><span className={`badge ${t.connecteamAccount===1?"badge-blue":"badge-purple"}`}>CT {t.connecteamAccount}</span></td>
+                  <td style={{fontSize:13,fontFamily:"monospace"}}>{t.clockOut || "—"}</td>
+                  <td style={{fontSize:13,fontWeight:700,color:"#1B2B4B"}}>{t.hours ? `${t.hours.toFixed(1)} hrs` : "—"}</td>
+                  <td><span className={`badge ${t.connecteamAccount==="A"?"badge-blue":"badge-purple"}`}>CT {t.connecteamAccount}</span></td>
                   <td><span className={`badge ${statusBadge(t.status)}`}>{t.status}</span></td>
                   <td>
                     {t.status==="pending"?(
                       <button onClick={()=>approve(t.id)} className="btn btn-sm btn-primary" style={{gap:5}}>
                         <CheckCircle2 size={12}/>Approve
                       </button>
+                    ):t.status==="active"?(
+                      <span style={{fontSize:12,color:"#b45309",fontWeight:500}}>In progress</span>
                     ):(
-                      <span style={{fontSize:12,color:"#16a34a",fontWeight:500}}>✓ Approved</span>
+                      <span style={{fontSize:12,color:"#16a34a",fontWeight:500}}>Approved</span>
                     )}
                   </td>
                 </tr>

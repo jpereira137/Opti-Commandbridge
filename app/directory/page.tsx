@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Search, Filter, Plus, Mail, Phone, MapPin, Zap, ChevronRight } from "lucide-react"
+import { Users, Search, Plus, Mail, Phone, MapPin, Zap, ChevronRight } from "lucide-react"
 import Header from "@/components/layout/Header"
-import { Card, Button, Avatar, Badge, EmptyState } from "@/components/ui"
-import { MOCK_EMPLOYEES, getDeptColor, getStatusColor, formatPay } from "@/lib/data"
-import type { Employee } from "@/types"
 import Link from "next/link"
+import { Card, Button, Avatar, EmptyState } from "@/components/ui"
+import { MOCK_EMPLOYEES, getDeptColor, formatPay } from "@/lib/data"
+import type { Employee } from "@/lib/data"
 
 export default function DirectoryPage() {
   const [search, setSearch] = useState("")
@@ -113,8 +113,8 @@ function EmployeeCard({ emp }: { emp: Employee }) {
         )}
       </div>
       <div className="space-y-1.5 text-xs text-slate-500">
-        {emp.workLocation && (
-          <div className="flex items-center gap-1.5"><MapPin size={11} />{emp.workLocation}</div>
+        {emp.location && (
+          <div className="flex items-center gap-1.5"><MapPin size={11} />{emp.location}</div>
         )}
         {emp.phone && (
           <div className="flex items-center gap-1.5"><Phone size={11} />{emp.phone}</div>
@@ -142,7 +142,7 @@ function EmployeeRow({ emp }: { emp: Employee }) {
         <p className="text-xs text-slate-500">{emp.jobTitle}</p>
       </div>
       <span className={`badge hidden sm:inline-flex ${getDeptColor(emp.department)}`}>{emp.department}</span>
-      <span className="text-xs text-slate-500 hidden md:block w-28 truncate">{emp.workLocation}</span>
+      <span className="text-xs text-slate-500 hidden md:block w-28 truncate">{emp.location}</span>
       <span className="text-xs font-medium text-slate-700 hidden lg:block w-24">{formatPay(emp.payRate, emp.rateType)}</span>
       {emp.connecteamAccount && (
         <span className="badge bg-amber-100 text-amber-800 hidden md:inline-flex items-center gap-1">

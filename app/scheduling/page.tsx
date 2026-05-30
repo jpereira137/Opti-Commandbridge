@@ -7,9 +7,9 @@ const DAYS = ["Mon 5/25","Tue 5/26","Wed 5/27","Thu 5/28","Fri 5/29","Sat 5/30",
 const DATES = ["2026-05-25","2026-05-26","2026-05-27","2026-05-28","2026-05-29","2026-05-30","2026-05-31"]
 
 export default function Scheduling() {
-  const [ctFilter,setCtFilter] = useState<0|1|2>(0)
+  const [ctFilter,setCtFilter] = useState<"all"|"A"|"B">("all")
 
-  const filteredShifts = ctFilter===0?SHIFTS:SHIFTS.filter(s=>s.connecteamAccount===ctFilter)
+  const filteredShifts = ctFilter==="all"?SHIFTS:SHIFTS.filter(s=>s.connecteamAccount===ctFilter)
 
   return (
     <div>
@@ -20,8 +20,8 @@ export default function Scheduling() {
         </div>
         <div style={{display:"flex",gap:10}}>
           <div style={{display:"flex",gap:6}}>
-            {[{v:0,l:"All"},{v:1,l:"Account 1"},{v:2,l:"Account 2"}].map(f=>(
-              <button key={f.v} onClick={()=>setCtFilter(f.v as 0|1|2)} className="btn btn-sm" style={{background:ctFilter===f.v?"#1B2B4B":"#fff",color:ctFilter===f.v?"#fff":"#1B2B4B"}}>{f.l}</button>
+            {[{v:"all" as const,l:"All"},{v:"A" as const,l:"Account A"},{v:"B" as const,l:"Account B"}].map(f=>(
+              <button key={f.v} onClick={()=>setCtFilter(f.v)} className="btn btn-sm" style={{background:ctFilter===f.v?"#1B2B4B":"#fff",color:ctFilter===f.v?"#fff":"#1B2B4B"}}>{f.l}</button>
             ))}
           </div>
           <button className="btn btn-primary btn-sm"><Plus size={13}/>Add shift</button>
@@ -30,7 +30,7 @@ export default function Scheduling() {
 
       {/* Connecteam sync badge */}
       <div style={{display:"flex",gap:10,marginBottom:16}}>
-        {[1,2].map(ct=>(
+        {(["A","B"] as const).map(ct=>(
           <div key={ct} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",border:"1px solid #e8ecf4",borderRadius:10,padding:"8px 14px",fontSize:13}}>
             <div style={{width:7,height:7,borderRadius:"50%",background:"#16a34a"}}/>
             <span style={{fontWeight:600,color:"#1B2B4B"}}>Connecteam Account {ct}</span>
@@ -52,7 +52,7 @@ export default function Scheduling() {
             </div>
           ))}
         </div>
-        {EMPLOYEES.filter(e=>(ctFilter===0||e.connecteamAccount===ctFilter)&&e.status!=="onboarding").map(emp=>(
+        {EMPLOYEES.filter(e=>(ctFilter==="all"||e.connecteamAccount===ctFilter)&&e.status!=="onboarding").map(emp=>(
           <div key={emp.id} style={{display:"grid",gridTemplateColumns:"140px repeat(7,1fr)",borderBottom:"1px solid #f1f5f9"}}>
             <div style={{padding:"10px 12px",borderRight:"1px solid #e8ecf4",display:"flex",alignItems:"center",gap:8}}>
               <div className="avatar" style={{width:26,height:26,fontSize:10}}>{initials(emp)}</div>
@@ -66,9 +66,9 @@ export default function Scheduling() {
               return (
                 <div key={date} style={{padding:"6px 4px",borderRight:"1px solid #f1f5f9",minHeight:52,display:"flex",alignItems:"center",justifyContent:"center"}}>
                   {shift?(
-                    <div style={{background:shift.connecteamAccount===1?"#dbeafe":"#ede9fe",borderRadius:6,padding:"4px 6px",width:"100%",textAlign:"center"}}>
-                      <div style={{fontSize:10,fontWeight:700,color:shift.connecteamAccount===1?"#1d4ed8":"#6d28d9"}}>{shift.startTime}–{shift.endTime}</div>
-                      <div style={{fontSize:9,color:shift.connecteamAccount===1?"#3b82f6":"#8b5cf6",marginTop:1}}>{shift.location.split(",")[0]}</div>
+                    <div style={{background:shift.connecteamAccount==="A"?"#dbeafe":"#ede9fe",borderRadius:6,padding:"4px 6px",width:"100%",textAlign:"center"}}>
+                      <div style={{fontSize:10,fontWeight:700,color:shift.connecteamAccount==="A"?"#1d4ed8":"#6d28d9"}}>{shift.startTime}–{shift.endTime}</div>
+                      <div style={{fontSize:9,color:shift.connecteamAccount==="A"?"#3b82f6":"#8b5cf6",marginTop:1}}>{shift.location.split(",")[0]}</div>
                     </div>
                   ):(
                     <div style={{width:"100%",height:36,borderRadius:6,border:"1px dashed #e8ecf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
