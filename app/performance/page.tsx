@@ -1,6 +1,7 @@
 "use client"
-import { MOCK_REVIEWS, EMPLOYEES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
-import { Star } from "lucide-react"
+import { MOCK_REVIEWS, statusBadge, fmtDate } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
+import { Star, RefreshCw } from "lucide-react"
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -13,20 +14,32 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function Performance() {
+  const { employees, isLive, isSyncing, sync } = useConnecteam()
+  
+  // Helper to get employee by ID
+  const getEmp = (id: string) => employees.find(e => e.id === id)
+  const fullName = (e: { firstName: string; lastName: string }) => `${e.firstName} ${e.lastName}`
+  const initials = (e: { firstName: string; lastName: string }) => `${e.firstName[0] || ""}${e.lastName[0] || ""}`.toUpperCase()
+  
   return (
     <div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
         <div>
           <div className="page-title">Performance</div>
-          <div className="page-sub">Reviews, goals, and feedback — Q1 & Q2 2026</div>
+          <div className="page-sub">Reviews, goals, and feedback — Q1 & Q2 2026 {isLive ? "(Live)" : "(Demo)"}</div>
         </div>
-        <button className="btn btn-primary">+ New review</button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={sync} disabled={isSyncing} className="btn" style={{gap:6}}>
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""}/>{isSyncing ? "Syncing..." : "Sync"}
+          </button>
+          <button className="btn btn-primary">+ New review</button>
+        </div>
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
         {MOCK_REVIEWS.map(r=>{
-          const emp = getEmployee(r.employeeId)
-          const reviewer = getEmployee(r.reviewerId)
+          const emp = getEmp(r.employeeId)
+          const reviewer = getEmp(r.reviewerId)
           if(!emp) return null
           return (
             <div key={r.id} className="card">

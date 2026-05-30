@@ -1,5 +1,7 @@
 "use client"
-import { EMPLOYEES, MOCK_TIME_ENTRIES, MOCK_PTO_REQUESTS, MOCK_REVIEWS } from "@/lib/data"
+import { MOCK_PTO_REQUESTS, MOCK_REVIEWS } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
+import { RefreshCw } from "lucide-react"
 
 function Bar({ label, value, max, color }: { label:string; value:number; max:number; color:string }) {
   const pct = Math.round((value/max)*100)
@@ -17,35 +19,42 @@ function Bar({ label, value, max, color }: { label:string; value:number; max:num
 }
 
 export default function Analytics() {
+  const { employees, timeEntries, isLive, isSyncing, sync } = useConnecteam()
+  
   const byDept = ["Operations","HR","Support","Finance"].map(d=>({
-    dept:d, count:EMPLOYEES.filter(e=>e.department===d&&e.status==="active").length
+    dept:d, count:employees.filter(e=>e.department===d&&e.status==="active").length
   }))
   const byType = ["Full-time salaried","Full-time hourly","Part-time hourly","Seasonal"].map(t=>({
     type:t.replace("Full-time ","FT ").replace("Part-time ","PT "),
-    count:EMPLOYEES.filter(e=>e.employmentType===t).length
+    count:employees.filter(e=>e.employmentType===t).length
   }))
-  const ct1 = EMPLOYEES.filter(e=>e.connecteamAccount==="A"&&e.status==="active").length
-  const ct2 = EMPLOYEES.filter(e=>e.connecteamAccount==="B"&&e.status==="active").length
+  const ct1 = employees.filter(e=>e.connecteamAccount==="A"&&e.status==="active").length
+  const ct2 = employees.filter(e=>e.connecteamAccount==="B"&&e.status==="active").length
   const reviewsWithRating = MOCK_REVIEWS.filter(r=>r.overallRating>0)
   const avgRating = reviewsWithRating.length > 0 ? (reviewsWithRating.reduce((a,r)=>a+r.overallRating,0)/reviewsWithRating.length).toFixed(1) : "N/A"
   const ptoUsed = MOCK_PTO_REQUESTS.filter(p=>p.status==="approved").reduce((a,p)=>a+p.days,0)
-  const totalHours = MOCK_TIME_ENTRIES.reduce((a,t)=>a+(t.hours||0),0)
+  const totalHours = timeEntries.reduce((a,t)=>a+(t.hours||0),0)
 
   return (
     <div>
-      <div style={{marginBottom:"1.5rem"}}>
-        <div className="page-title">Analytics & reporting</div>
-        <div className="page-sub">Workforce insights across all departments and Connecteam accounts</div>
+      <div style={{marginBottom:"1.5rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div>
+          <div className="page-title">Analytics & reporting</div>
+          <div className="page-sub">Workforce insights across all departments and Connecteam accounts {isLive ? "(Live)" : "(Demo)"}</div>
+        </div>
+        <button onClick={sync} disabled={isSyncing} className="btn" style={{gap:6}}>
+          <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""}/>{isSyncing ? "Syncing..." : "Sync"}
+        </button>
       </div>
 
       <div className="kpi-grid">
         {[
-          {label:"Total headcount",value:EMPLOYEES.length,sub:"Active + onboarding"},
-          {label:"Active employees",value:EMPLOYEES.filter(e=>e.status==="active").length,sub:"Currently working"},
+          {label:"Total headcount",value:employees.length,sub:"Active + onboarding"},
+          {label:"Active employees",value:employees.filter(e=>e.status==="active").length,sub:"Currently working"},
           {label:"Avg performance",value:avgRating+"/5",sub:"Q1 2026 reviews"},
           {label:"PTO days used",value:ptoUsed,sub:"Approved requests"},
           {label:"Hours tracked",value:totalHours.toFixed(0),sub:"This pay period"},
-          {label:"Pending approvals",value:MOCK_TIME_ENTRIES.filter(t=>t.status==="pending").length+MOCK_PTO_REQUESTS.filter(p=>p.status==="pending").length,sub:"Time + PTO"},
+          {label:"Pending approvals",value:timeEntries.filter(t=>t.status==="pending").length+MOCK_PTO_REQUESTS.filter(p=>p.status==="pending").length,sub:"Time + PTO"},
         ].map(k=>(
           <div key={k.label} className="kpi-card">
             <div className="kpi-value">{k.value}</div>

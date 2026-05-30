@@ -1,21 +1,23 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Search, Plus, Mail, Phone, MapPin, Zap, ChevronRight } from "lucide-react"
+import { Users, Search, Plus, Mail, Phone, MapPin, Zap, ChevronRight, RefreshCw } from "lucide-react"
 import Header from "@/components/layout/Header"
 import Link from "next/link"
 import { Card, Button, Avatar, EmptyState } from "@/components/ui"
-import { MOCK_EMPLOYEES, getDeptColor, formatPay } from "@/lib/data"
+import { getDeptColor, formatPay } from "@/lib/data"
 import type { Employee } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
 
 export default function DirectoryPage() {
+  const { employees, isLive, isSyncing, sync } = useConnecteam()
   const [search, setSearch] = useState("")
   const [deptFilter, setDeptFilter] = useState("All")
   const [view, setView] = useState<"grid"|"list">("grid")
 
-  const depts = ["All", ...Array.from(new Set(MOCK_EMPLOYEES.map(e => e.department || "")))]
+  const depts = ["All", ...Array.from(new Set(employees.map(e => e.department || "")))]
 
-  const filtered = MOCK_EMPLOYEES.filter(emp => {
+  const filtered = employees.filter(emp => {
     const name = `${emp.firstName} ${emp.lastName}`.toLowerCase()
     const matchSearch = name.includes(search.toLowerCase()) ||
       emp.jobTitle?.toLowerCase().includes(search.toLowerCase()) ||
@@ -28,11 +30,16 @@ export default function DirectoryPage() {
     <div className="animate-in">
       <Header
         title="Employee directory"
-        subtitle={`${MOCK_EMPLOYEES.length} employees across 2 Connecteam accounts`}
+        subtitle={`${employees.length} employees across 2 Connecteam accounts${isLive ? " (Live)" : " (Demo)"}`}
         actions={
-          <Link href="/onboarding">
-            <Button variant="primary" size="sm"><Plus size={14} /> Add employee</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={sync} disabled={isSyncing}>
+              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Syncing..." : "Sync"}
+            </Button>
+            <Link href="/onboarding">
+              <Button variant="primary" size="sm"><Plus size={14} /> Add employee</Button>
+            </Link>
+          </div>
         }
       />
 

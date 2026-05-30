@@ -10,21 +10,31 @@ import Link from "next/link"
 import Header from "@/components/layout/Header"
 import { MetricCard, Card, Badge, Avatar, Button, ProgressBar, StatusDot } from "@/components/ui"
 import {
-  MOCK_EMPLOYEES, MOCK_PTO_REQUESTS, MOCK_ANNOUNCEMENTS,
-  MOCK_TIME_ENTRIES, MOCK_SHIFTS, MOCK_CONNECTEAM_STATUS,
-  getDashboardMetrics, getStatusColor, formatPay
+  MOCK_PTO_REQUESTS, MOCK_ANNOUNCEMENTS, getStatusColor, formatPay
 } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
 import { formatDistanceToNow } from "date-fns"
 
 export default function DashboardPage() {
-  const metrics = getDashboardMetrics()
+  const { employees, shifts, timeEntries, accounts, isLive, isSyncing, sync, lastSync } = useConnecteam()
+  
   const [today, setToday] = useState("")
   const [mounted, setMounted] = useState(false)
-  const activeEntries = MOCK_TIME_ENTRIES.filter(t => t.status === "active")
+  const activeEntries = timeEntries.filter(t => t.status === "active")
   const [ptoRequests, setPtoRequests] = useState(MOCK_PTO_REQUESTS)
   const pendingPTO = ptoRequests.filter(r => r.status === "pending")
-  const incompleteOnboarding = MOCK_EMPLOYEES.filter(e => !e.onboardingComplete)
-  const todayShifts = MOCK_SHIFTS.filter(s => s.date === new Date().toISOString().split("T")[0])
+  const incompleteOnboarding = employees.filter(e => !e.onboardingComplete)
+  const todayShifts = shifts.filter(s => s.date === new Date().toISOString().split("T")[0])
+  
+  // Dynamic metrics
+  const metrics = {
+    totalEmployees: employees.length,
+    pendingPTO: pendingPTO.length,
+    pendingOnboarding: incompleteOnboarding.length,
+    announcements: MOCK_ANNOUNCEMENTS.length,
+    documentsToSign: 1,
+    upcomingReviews: 2,
+  }
   
   useEffect(() => {
     setToday(new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" }))
@@ -215,23 +225,23 @@ export default function DashboardPage() {
                   <Zap size={15} className="text-amber-600" />
                   Connecteam sync
                 </h3>
-                <button className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-                  <RefreshCw size={11} /> Sync now
+                <button onClick={sync} disabled={isSyncing} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                  <RefreshCw size={11} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Syncing..." : "Sync now"}
                 </button>
               </div>
               <div className="space-y-3">
-                {MOCK_CONNECTEAM_STATUS.map(ct => (
+                {accounts.map(ct => (
                   <div key={ct.account} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
                     <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${ct.status === "connected" ? "bg-green-500" : "bg-red-500"}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-700">Account {ct.account}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{ct.department}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{ct.account === "A" ? "Operations (Providence)" : "Support & Admin (Boston)"}</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        {ct.employeeCount} employees · synced {formatSyncTime(ct.lastSync)}
+                        {ct.users.length} employees · synced {formatSyncTime(ct.lastSync)}
                       </p>
                     </div>
                     <span className={`badge ${ct.status === "connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                      {ct.status}
+                      {isLive ? "Live" : ct.status}
                     </span>
                   </div>
                 ))}

@@ -1,22 +1,30 @@
 "use client"
 import { useState } from "react"
-import { MOCK_DOCUMENTS, EMPLOYEES, fmtDate } from "@/lib/data"
-import { Upload, FileText, Download, CheckCircle2, Clock, File } from "lucide-react"
+import { MOCK_DOCUMENTS, fmtDate } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
+import { Upload, FileText, Download, CheckCircle2, Clock, File, RefreshCw } from "lucide-react"
 
 const CATS = ["All","Policy","Benefits","Payroll","Legal","Certification"]
 
 export default function Documents() {
+  const { employees, isLive, isSyncing, sync } = useConnecteam()
   const [cat,setCat] = useState("All")
   const filtered = cat==="All"?MOCK_DOCUMENTS:MOCK_DOCUMENTS.filter(d=>d.category===cat)
+  const activeEmployees = employees.filter(e=>e.status==="active")
 
   return (
     <div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
         <div>
           <div className="page-title">Documents</div>
-          <div className="page-sub">Company policies, forms, and certifications</div>
+          <div className="page-sub">Company policies, forms, and certifications {isLive ? "(Live)" : "(Demo)"}</div>
         </div>
-        <button className="btn btn-primary"><Upload size={14}/>Upload document</button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={sync} disabled={isSyncing} className="btn" style={{gap:6}}>
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""}/>{isSyncing ? "Syncing..." : "Sync"}
+          </button>
+          <button className="btn btn-primary"><Upload size={14}/>Upload document</button>
+        </div>
       </div>
 
       <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
@@ -27,7 +35,7 @@ export default function Documents() {
 
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {filtered.map(doc=>{
-          const unsigned = EMPLOYEES.filter(e=>doc.signatureRequired&&!doc.signedBy.includes(e.id)&&e.status==="active")
+          const unsigned = activeEmployees.filter(e=>doc.signatureRequired&&!doc.signedBy.includes(e.id))
           return (
             <div key={doc.id} className="card">
               <div style={{display:"flex",alignItems:"center",gap:14}}>
@@ -56,9 +64,9 @@ export default function Documents() {
               </div>
               {doc.signatureRequired&&doc.signedBy.length>0&&(
                 <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
-                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>Signed by {doc.signedBy.length} of {EMPLOYEES.filter(e=>e.status==="active").length} active employees</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>Signed by {doc.signedBy.length} of {activeEmployees.length} active employees</div>
                   <div style={{height:5,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.round(doc.signedBy.length/EMPLOYEES.filter(e=>e.status==="active").length*100)}%`,background:"#16a34a",borderRadius:3}}/>
+                    <div style={{height:"100%",width:`${activeEmployees.length > 0 ? Math.round(doc.signedBy.length/activeEmployees.length*100) : 0}%`,background:"#16a34a",borderRadius:3}}/>
                   </div>
                 </div>
               )}

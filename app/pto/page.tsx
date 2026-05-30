@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarCheck, Plus, Check, X } from "lucide-react"
+import { CalendarCheck, Plus, Check, X, RefreshCw } from "lucide-react"
 import Header from "@/components/layout/Header"
 import { Card, Button, Avatar, EmptyState } from "@/components/ui"
-import { MOCK_PTO_REQUESTS, MOCK_PTO_BALANCES, MOCK_EMPLOYEES, getStatusColor } from "@/lib/data"
+import { MOCK_PTO_REQUESTS, MOCK_PTO_BALANCES, getStatusColor } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
 
 const TYPE_COLORS: Record<string,string> = {
   vacation:    "bg-blue-100 text-blue-800",
@@ -15,6 +16,7 @@ const TYPE_COLORS: Record<string,string> = {
 }
 
 export default function PTOPage() {
+  const { employees, isLive, isSyncing, sync } = useConnecteam()
   const [requests, setRequests] = useState(MOCK_PTO_REQUESTS)
   const [filter, setFilter] = useState<"all"|"pending"|"approved"|"denied">("all")
 
@@ -28,10 +30,15 @@ export default function PTOPage() {
     <div className="animate-in">
       <Header
         title="PTO & Leave"
-        subtitle="Manage time-off requests and balances"
+        subtitle={`Manage time-off requests and balances${isLive ? " (Live)" : " (Demo)"}`}
         notificationCount={pending}
         actions={
-          <Button variant="primary" size="sm"><Plus size={14} /> New request</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={sync} disabled={isSyncing}>
+              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Syncing..." : "Sync"}
+            </Button>
+            <Button variant="primary" size="sm"><Plus size={14} /> New request</Button>
+          </div>
         }
       />
 
@@ -56,7 +63,7 @@ export default function PTOPage() {
           <h3 className="font-semibold text-slate-800 mb-4">Employee PTO balances — 2026</h3>
           <div className="space-y-3">
             {MOCK_PTO_BALANCES.map(bal => {
-              const emp = MOCK_EMPLOYEES.find(e => e.id === bal.employeeId)
+              const emp = employees.find(e => e.id === bal.employeeId)
               if (!emp) return null
               const usedPct = Math.round((bal.usedDays / Math.max(bal.totalDays, 1)) * 100)
               return (

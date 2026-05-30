@@ -1,22 +1,39 @@
 "use client"
-import { useState } from "react"
-import { MOCK_TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
-import { CheckCircle2, Clock, Download } from "lucide-react"
+import { useState, useEffect } from "react"
+import { statusBadge, fmtDate } from "@/lib/data"
+import { useConnecteam } from "@/lib/connecteam-context"
+import { CheckCircle2, Clock, Download, RefreshCw } from "lucide-react"
 
 export default function TimeTracking() {
-  const [entries,setEntries] = useState(MOCK_TIME_ENTRIES)
+  const { timeEntries: ctTimeEntries, employees, isLive, isSyncing, sync } = useConnecteam()
+  const [entries, setEntries] = useState(ctTimeEntries)
+  
+  // Update entries when Connecteam data changes
+  useEffect(() => {
+    setEntries(ctTimeEntries)
+  }, [ctTimeEntries])
+  
   const approve = (id:string) => setEntries(prev=>prev.map(t=>t.id===id?{...t,status:"approved" as const}:t))
   const pending = entries.filter(t=>t.status==="pending").length
   const totalHours = entries.reduce((a,t)=>a+(t.hours || 0),0).toFixed(1)
+  
+  // Helper to get employee info
+  const getEmp = (employeeId: string) => employees.find(e => e.id === employeeId)
+  const initials = (firstName: string, lastName: string) => `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase()
 
   return (
     <div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
         <div>
           <div className="page-title">Time tracking</div>
-          <div className="page-sub">Timesheets pulled from Connecteam · Pay period: May 25 – 31, 2026</div>
+          <div className="page-sub">{isLive ? "Live data from Connecteam" : "Demo data"} · Pay period: May 25 – 31, 2026</div>
         </div>
-        <button className="btn"><Download size={14}/>Export CSV</button>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={sync} disabled={isSyncing} className="btn" style={{gap:6}}>
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""}/>{isSyncing ? "Syncing..." : "Sync"}
+          </button>
+          <button className="btn"><Download size={14}/>Export CSV</button>
+        </div>
       </div>
 
       <div className="kpi-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
@@ -24,7 +41,7 @@ export default function TimeTracking() {
           {label:"Total hours",value:totalHours,color:"#1B2B4B"},
           {label:"Entries",value:entries.length,color:"#1d4ed8"},
           {label:"Pending approval",value:pending,color:"#b45309"},
-          {label:"Approved",value:entries.length-pending,color:"#15803d"},
+          {label:"Approved",value:entries.filter(t=>t.status==="approved").length,color:"#15803d"},
         ].map(k=>(
           <div key={k.label} className="kpi-card">
             <div className="kpi-value" style={{color:k.color}}>{k.value}</div>
@@ -34,9 +51,10 @@ export default function TimeTracking() {
       </div>
 
       <div className="card" style={{padding:0,overflow:"hidden"}}>
-        <div style={{padding:"14px 18px",borderBottom:"1px solid #e8ecf4",display:"flex",gap:10}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #e8ecf4",display:"flex",gap:10,alignItems:"center"}}>
           <span style={{fontWeight:600,fontSize:14,color:"#1B2B4B"}}>All time entries</span>
           <span className="badge badge-amber" style={{marginLeft:4}}>{pending} pending</span>
+          <span className={`badge ${isLive ? "badge-green" : "badge-gray"}`} style={{marginLeft:"auto"}}>{isLive ? "Live" : "Demo"}</span>
         </div>
         <table className="data-table">
           <thead>
@@ -44,14 +62,15 @@ export default function TimeTracking() {
           </thead>
           <tbody>
             {entries.map(t=>{
-              const emp = getEmployee(t.employeeId)
-              if(!emp) return null
+              const emp = getEmp(t.employeeId)
+              const empName = emp ? `${emp.firstName} ${emp.lastName}` : t.employeeName || "Unknown"
+              const empInitials = emp ? initials(emp.firstName, emp.lastName) : "?"
               return (
                 <tr key={t.id}>
                   <td>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
-                      <div className="avatar" style={{width:28,height:28,fontSize:10}}>{initials(emp)}</div>
-                      <span style={{fontSize:13,fontWeight:500}}>{fullName(emp)}</span>
+                      <div className="avatar" style={{width:28,height:28,fontSize:10}}>{empInitials}</div>
+                      <span style={{fontSize:13,fontWeight:500}}>{empName}</span>
                     </div>
                   </td>
                   <td style={{fontSize:13}}>{fmtDate(t.date)}</td>
