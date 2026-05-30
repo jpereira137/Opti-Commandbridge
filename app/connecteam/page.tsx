@@ -45,7 +45,7 @@ export default function ConnecteamPage() {
       const data = await res.json()
       setApiStatus(data)
     } catch (error) {
-      console.error("[v0] Failed to check API status:", error)
+      console.error("Failed to check API status:", error)
     }
   }, [])
 
@@ -59,7 +59,7 @@ export default function ConnecteamPage() {
         setLastSyncTime(new Date())
       }
     } catch (error) {
-      console.error("[v0] Failed to sync:", error)
+      console.error("Failed to sync:", error)
     } finally {
       setIsSyncing(false)
     }
