@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MOCK_ANNOUNCEMENTS, EMPLOYEES } from "@/lib/data"
 import { Pin, Plus, Users, Eye } from "lucide-react"
 
@@ -7,6 +7,16 @@ export default function Announcements() {
   const [filter,setFilter] = useState("all")
   const filtered = filter==="all"?MOCK_ANNOUNCEMENTS:MOCK_ANNOUNCEMENTS.filter(a=>a.audience===filter||a.audience==="all")
   const [composing,setComposing] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  
+  const formatDate = (dateStr: string) => {
+    if (!mounted) return "..."
+    return new Date(dateStr).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})
+  }
 
   return (
     <div>
@@ -60,7 +70,7 @@ export default function Announcements() {
                 <p style={{fontSize:13,color:"#475569",lineHeight:1.6,marginBottom:10}}>{a.body}</p>
                 <div style={{display:"flex",alignItems:"center",gap:12,fontSize:12,color:"#94a3b8"}}>
                   <span>By {a.authorName}</span>
-                  <span>{new Date(a.publishedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>
+                  <span>{formatDate(a.publishedAt)}</span>
                   <span style={{display:"flex",alignItems:"center",gap:4}}><Eye size={12}/>{a.readBy.length} read</span>
                 </div>
               </div>
