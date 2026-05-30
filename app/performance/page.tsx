@@ -1,64 +1,74 @@
 "use client"
+import { REVIEWS, EMPLOYEES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
+import { Star } from "lucide-react"
 
-import { Star, TrendingUp } from "lucide-react"
-import Header from "@/components/layout/Header"
-import { Card, Avatar } from "@/components/ui"
-import { MOCK_REVIEWS, MOCK_EMPLOYEES, getStatusColor } from "@/lib/data"
-
-export default function PerformancePage() {
+function Stars({ rating }: { rating: number }) {
   return (
-    <div className="animate-in">
-      <Header
-        title="Performance"
-        subtitle="Track employee performance and reviews"
-      />
+    <div style={{display:"flex",gap:2}}>
+      {[1,2,3,4,5].map(i=>(
+        <Star key={i} size={14} fill={i<=rating?"#C0392B":"none"} color={i<=rating?"#C0392B":"#e2e8f0"} />
+      ))}
+    </div>
+  )
+}
 
-      <div className="p-6 space-y-6">
-        {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Pending reviews", value: MOCK_REVIEWS.filter(r => r.status === "draft").length, color: "bg-amber-50 text-amber-700 border-amber-200" },
-            { label: "Submitted", value: MOCK_REVIEWS.filter(r => r.status === "submitted").length, color: "bg-blue-50 text-blue-700 border-blue-200" },
-            { label: "Acknowledged", value: MOCK_REVIEWS.filter(r => r.status === "acknowledged").length, color: "bg-green-50 text-green-700 border-green-200" },
-            { label: "Avg rating", value: "3.5", color: "bg-slate-50 text-slate-600 border-slate-200" },
-          ].map(s => (
-            <Card key={s.label} className={`p-4 border ${s.color}`}>
-              <p className="text-2xl font-bold font-display">{s.value}</p>
-              <p className="text-xs font-medium mt-1">{s.label}</p>
-            </Card>
-          ))}
+export default function Performance() {
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+        <div>
+          <div className="page-title">Performance</div>
+          <div className="page-sub">Reviews, goals, and feedback — Q1 & Q2 2026</div>
         </div>
+        <button className="btn btn-primary">+ New review</button>
+      </div>
 
-        {/* Reviews table */}
-        <Card className="overflow-hidden">
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Star size={16} className="text-amber-500" />
-              Recent reviews
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {MOCK_REVIEWS.map(review => {
-              const emp = MOCK_EMPLOYEES.find(e => e.id === review.employeeId)
-              if (!emp) return null
-              return (
-                <div key={review.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                  <Avatar name={`${emp.firstName} ${emp.lastName}`} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">{emp.firstName} {emp.lastName}</p>
-                    <p className="text-xs text-slate-500">{review.period}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[1,2,3,4,5].map(i => (
-                      <Star key={i} size={14} className={i <= review.overallRating ? "text-amber-400 fill-amber-400" : "text-slate-200"} />
-                    ))}
-                  </div>
-                  <span className={`badge ${getStatusColor(review.status)} capitalize`}>{review.status}</span>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        {REVIEWS.map(r=>{
+          const emp = getEmployee(r.employeeId)
+          const reviewer = getEmployee(r.reviewerId)
+          if(!emp) return null
+          return (
+            <div key={r.id} className="card">
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+                <div className="avatar" style={{width:42,height:42}}>{initials(emp)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:15,color:"#1B2B4B"}}>{fullName(emp)}</div>
+                  <div style={{fontSize:12,color:"#64748b"}}>{emp.role} · Reviewed by {reviewer?fullName(reviewer):"—"}</div>
                 </div>
-              )
-            })}
-          </div>
-        </Card>
+                <div style={{textAlign:"right"}}>
+                  <span className={`badge ${statusBadge(r.status)}`}>{r.status}</span>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:4}}>{r.period}</div>
+                </div>
+              </div>
+
+              {r.overallRating>0&&(
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,padding:"10px 14px",background:"#f8fafc",borderRadius:8}}>
+                  <span style={{fontSize:12,color:"#64748b",fontWeight:500}}>Overall rating:</span>
+                  <Stars rating={r.overallRating}/>
+                  <span style={{fontSize:13,fontWeight:700,color:"#1B2B4B"}}>{r.overallRating}/5</span>
+                  {r.submittedAt&&<span style={{marginLeft:"auto",fontSize:11,color:"#94a3b8"}}>Submitted {fmtDate(r.submittedAt)}</span>}
+                </div>
+              )}
+
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.04em",marginBottom:8}}>Goals</div>
+                {r.goals.map(g=>(
+                  <div key={g.id} style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                      <span style={{fontSize:13,color:"#1B2B4B"}}>{g.title}</span>
+                      <span style={{fontSize:12,fontWeight:600,color:g.progress>=90?"#15803d":g.progress>=60?"#b45309":"#C0392B"}}>{g.progress}%</span>
+                    </div>
+                    <div style={{height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${g.progress}%`,background:g.progress>=90?"#16a34a":g.progress>=60?"#d97706":"#C0392B",borderRadius:3,transition:"width .4s ease"}}/>
+                    </div>
+                    <div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>Due {fmtDate(g.due)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

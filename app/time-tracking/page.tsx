@@ -1,87 +1,79 @@
 "use client"
+import { useState } from "react"
+import { TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
+import { CheckCircle2, Clock, Download } from "lucide-react"
 
-import { Clock, Check, AlertCircle } from "lucide-react"
-import Header from "@/components/layout/Header"
-import { Card, Button, Avatar } from "@/components/ui"
-import { MOCK_TIME_ENTRIES, getStatusColor } from "@/lib/data"
-
-export default function TimeTrackingPage() {
-  const activeEntries = MOCK_TIME_ENTRIES.filter(t => t.status === "active")
-  const pendingApproval = MOCK_TIME_ENTRIES.filter(t => t.status === "pending")
-  const approved = MOCK_TIME_ENTRIES.filter(t => t.status === "approved")
+export default function TimeTracking() {
+  const [entries,setEntries] = useState(TIME_ENTRIES)
+  const approve = (id:string) => setEntries(prev=>prev.map(t=>t.id===id?{...t,status:"approved" as const}:t))
+  const pending = entries.filter(t=>t.status==="pending").length
+  const totalHours = entries.reduce((a,t)=>a+t.hours,0).toFixed(1)
 
   return (
-    <div className="animate-in">
-      <Header
-        title="Time Tracking"
-        subtitle="Review and approve employee timesheets"
-        notificationCount={pendingApproval.length}
-      />
-
-      <div className="p-6 space-y-6">
-        {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Currently clocked in", value: activeEntries.length, color: "bg-green-50 text-green-700 border-green-200" },
-            { label: "Pending approval", value: pendingApproval.length, color: "bg-amber-50 text-amber-700 border-amber-200" },
-            { label: "Approved today", value: approved.length, color: "bg-blue-50 text-blue-700 border-blue-200" },
-            { label: "Total hours today", value: MOCK_TIME_ENTRIES.reduce((s, t) => s + (t.hours || 0), 0).toFixed(1), color: "bg-slate-50 text-slate-600 border-slate-200" },
-          ].map(s => (
-            <Card key={s.label} className={`p-4 border ${s.color}`}>
-              <p className="text-2xl font-bold font-display">{s.value}</p>
-              <p className="text-xs font-medium mt-1">{s.label}</p>
-            </Card>
-          ))}
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+        <div>
+          <div className="page-title">Time tracking</div>
+          <div className="page-sub">Timesheets pulled from Connecteam · Pay period: May 25 – 31, 2026</div>
         </div>
+        <button className="btn"><Download size={14}/>Export CSV</button>
+      </div>
 
-        {/* Active clocks */}
-        <Card className="overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Clock size={16} className="text-green-600" />
-              Currently clocked in
-            </h3>
-            <span className="badge bg-green-100 text-green-700">{activeEntries.length} active</span>
+      <div className="kpi-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        {[
+          {label:"Total hours",value:totalHours,color:"#1B2B4B"},
+          {label:"Entries",value:entries.length,color:"#1d4ed8"},
+          {label:"Pending approval",value:pending,color:"#b45309"},
+          {label:"Approved",value:entries.length-pending,color:"#15803d"},
+        ].map(k=>(
+          <div key={k.label} className="kpi-card">
+            <div className="kpi-value" style={{color:k.color}}>{k.value}</div>
+            <div className="kpi-label">{k.label}</div>
           </div>
-          <div className="divide-y divide-slate-50">
-            {activeEntries.map(entry => (
-              <div key={entry.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                <div className="relative">
-                  <Avatar name={entry.employeeName} size="sm" />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{entry.employeeName}</p>
-                  <p className="text-xs text-slate-500">Clocked in at {entry.clockIn}</p>
-                </div>
-                <span className={`badge ${getStatusColor(entry.status)} capitalize`}>{entry.status}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+        ))}
+      </div>
 
-        {/* Pending approval */}
-        <Card className="overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <AlertCircle size={16} className="text-amber-600" />
-              Pending approval
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {pendingApproval.map(entry => (
-              <div key={entry.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                <Avatar name={entry.employeeName} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{entry.employeeName}</p>
-                  <p className="text-xs text-slate-500">{entry.date} · {entry.clockIn} – {entry.clockOut}</p>
-                </div>
-                <p className="text-sm font-medium text-slate-700">{entry.hours?.toFixed(1)}h</p>
-                <Button variant="primary" size="sm"><Check size={12} /> Approve</Button>
-              </div>
-            ))}
-          </div>
-        </Card>
+      <div className="card" style={{padding:0,overflow:"hidden"}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #e8ecf4",display:"flex",gap:10}}>
+          <span style={{fontWeight:600,fontSize:14,color:"#1B2B4B"}}>All time entries</span>
+          <span className="badge badge-amber" style={{marginLeft:4}}>{pending} pending</span>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr><th>Employee</th><th>Date</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>CT Account</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {entries.map(t=>{
+              const emp = getEmployee(t.employeeId)
+              if(!emp) return null
+              return (
+                <tr key={t.id}>
+                  <td>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <div className="avatar" style={{width:28,height:28,fontSize:10}}>{initials(emp)}</div>
+                      <span style={{fontSize:13,fontWeight:500}}>{fullName(emp)}</span>
+                    </div>
+                  </td>
+                  <td style={{fontSize:13}}>{fmtDate(t.date)}</td>
+                  <td style={{fontSize:13,fontFamily:"monospace"}}>{t.clockIn}</td>
+                  <td style={{fontSize:13,fontFamily:"monospace"}}>{t.clockOut}</td>
+                  <td style={{fontSize:13,fontWeight:700,color:"#1B2B4B"}}>{t.hours.toFixed(1)} hrs</td>
+                  <td><span className={`badge ${t.connecteamAccount===1?"badge-blue":"badge-purple"}`}>CT {t.connecteamAccount}</span></td>
+                  <td><span className={`badge ${statusBadge(t.status)}`}>{t.status}</span></td>
+                  <td>
+                    {t.status==="pending"?(
+                      <button onClick={()=>approve(t.id)} className="btn btn-sm btn-primary" style={{gap:5}}>
+                        <CheckCircle2 size={12}/>Approve
+                      </button>
+                    ):(
+                      <span style={{fontSize:12,color:"#16a34a",fontWeight:500}}>✓ Approved</span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

@@ -1,74 +1,85 @@
 "use client"
+import { useState } from "react"
+import { SHIFTS, EMPLOYEES, getEmployee, fullName, initials, statusBadge } from "@/lib/data"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react"
-import Header from "@/components/layout/Header"
-import { Card, Button, Avatar } from "@/components/ui"
-import { MOCK_SHIFTS, getStatusColor } from "@/lib/data"
+const DAYS = ["Mon 5/25","Tue 5/26","Wed 5/27","Thu 5/28","Fri 5/29","Sat 5/30","Sun 5/31"]
+const DATES = ["2026-05-25","2026-05-26","2026-05-27","2026-05-28","2026-05-29","2026-05-30","2026-05-31"]
 
-export default function SchedulingPage() {
-  const today = new Date()
-  const todayStr = today.toISOString().split("T")[0]
-  const todayShifts = MOCK_SHIFTS.filter(s => s.date === todayStr)
+export default function Scheduling() {
+  const [ctFilter,setCtFilter] = useState<0|1|2>(0)
+
+  const filteredShifts = ctFilter===0?SHIFTS:SHIFTS.filter(s=>s.connecteamAccount===ctFilter)
 
   return (
-    <div className="animate-in">
-      <Header
-        title="Scheduling"
-        subtitle="Manage employee shifts and schedules"
-        actions={
-          <Button variant="primary" size="sm"><Plus size={14} /> Add shift</Button>
-        }
-      />
-
-      <div className="p-6 space-y-6">
-        {/* Week navigation */}
-        <Card className="p-4 flex items-center justify-between">
-          <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronLeft size={18} className="text-slate-500" />
-          </button>
-          <div className="text-center">
-            <h3 className="font-semibold text-slate-800">
-              {today.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </h3>
-            <p className="text-xs text-slate-500">Week of {today.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+        <div>
+          <div className="page-title">Scheduling</div>
+          <div className="page-sub">Week of May 25 – 31, 2026 · Data pulled from Connecteam</div>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <div style={{display:"flex",gap:6}}>
+            {[{v:0,l:"All"},{v:1,l:"Account 1"},{v:2,l:"Account 2"}].map(f=>(
+              <button key={f.v} onClick={()=>setCtFilter(f.v as 0|1|2)} className="btn btn-sm" style={{background:ctFilter===f.v?"#1B2B4B":"#fff",color:ctFilter===f.v?"#fff":"#1B2B4B"}}>{f.l}</button>
+            ))}
           </div>
-          <button className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronRight size={18} className="text-slate-500" />
-          </button>
-        </Card>
+          <button className="btn btn-primary btn-sm"><Plus size={13}/>Add shift</button>
+        </div>
+      </div>
 
-        {/* Today&apos;s shifts */}
-        <Card className="overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <CalendarDays size={16} className="text-blue-600" />
-              Today&apos;s shifts
-            </h3>
-            <span className="badge bg-blue-100 text-blue-700">{todayShifts.length} scheduled</span>
+      {/* Connecteam sync badge */}
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {[1,2].map(ct=>(
+          <div key={ct} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",border:"1px solid #e8ecf4",borderRadius:10,padding:"8px 14px",fontSize:13}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#16a34a"}}/>
+            <span style={{fontWeight:600,color:"#1B2B4B"}}>Connecteam Account {ct}</span>
+            <span style={{color:"#64748b"}}>· {EMPLOYEES.filter(e=>e.connecteamAccount===ct&&e.status==="active").length} active employees</span>
+            <span className="badge badge-green" style={{fontSize:10}}>Synced</span>
           </div>
-          {todayShifts.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              <CalendarDays size={32} className="mx-auto mb-2 text-slate-300" />
-              <p className="text-sm">No shifts scheduled for today</p>
+        ))}
+      </div>
+
+      {/* Weekly calendar grid */}
+      <div className="card" style={{padding:0,overflow:"hidden"}}>
+        <div style={{display:"grid",gridTemplateColumns:"140px repeat(7,1fr)",borderBottom:"1px solid #e8ecf4"}}>
+          <div style={{padding:"12px 16px",background:"#f8fafc",borderRight:"1px solid #e8ecf4"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase"}}>Employee</span>
+          </div>
+          {DAYS.map(d=>(
+            <div key={d} style={{padding:"12px 8px",background:"#f8fafc",borderRight:"1px solid #f1f5f9",textAlign:"center",fontSize:12,fontWeight:600,color:d.includes("5/29")?"#1B2B4B":"#64748b",borderBottom:d.includes("5/29")?"2px solid #C0392B":"none"}}>
+              {d}
             </div>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {todayShifts.map(shift => (
-                <div key={shift.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                  <Avatar name={shift.employeeName} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">{shift.employeeName}</p>
-                    <p className="text-xs text-slate-500">{shift.department} · {shift.location}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-slate-700">{shift.startTime} – {shift.endTime}</p>
-                  </div>
-                  <span className={`badge ${getStatusColor(shift.status)} capitalize`}>{shift.status}</span>
+          ))}
+        </div>
+        {EMPLOYEES.filter(e=>(ctFilter===0||e.connecteamAccount===ctFilter)&&e.status!=="onboarding").map(emp=>(
+          <div key={emp.id} style={{display:"grid",gridTemplateColumns:"140px repeat(7,1fr)",borderBottom:"1px solid #f1f5f9"}}>
+            <div style={{padding:"10px 12px",borderRight:"1px solid #e8ecf4",display:"flex",alignItems:"center",gap:8}}>
+              <div className="avatar" style={{width:26,height:26,fontSize:10}}>{initials(emp)}</div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:"#1B2B4B",lineHeight:1.2}}>{emp.firstName}</div>
+                <div style={{fontSize:10,color:"#94a3b8"}}>{emp.role.split(" ")[0]}</div>
+              </div>
+            </div>
+            {DATES.map(date=>{
+              const shift = filteredShifts.find(s=>s.employeeId===emp.id&&s.date===date)
+              return (
+                <div key={date} style={{padding:"6px 4px",borderRight:"1px solid #f1f5f9",minHeight:52,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {shift?(
+                    <div style={{background:shift.connecteamAccount===1?"#dbeafe":"#ede9fe",borderRadius:6,padding:"4px 6px",width:"100%",textAlign:"center"}}>
+                      <div style={{fontSize:10,fontWeight:700,color:shift.connecteamAccount===1?"#1d4ed8":"#6d28d9"}}>{shift.startTime}–{shift.endTime}</div>
+                      <div style={{fontSize:9,color:shift.connecteamAccount===1?"#3b82f6":"#8b5cf6",marginTop:1}}>{shift.location.split(",")[0]}</div>
+                    </div>
+                  ):(
+                    <div style={{width:"100%",height:36,borderRadius:6,border:"1px dashed #e8ecf4",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <span style={{fontSize:16,color:"#e8ecf4"}}>+</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
+              )
+            })}
+          </div>
+        ))}
       </div>
     </div>
   )

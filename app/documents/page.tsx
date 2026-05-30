@@ -1,68 +1,70 @@
 "use client"
+import { useState } from "react"
+import { DOCUMENTS, EMPLOYEES, fmtDate } from "@/lib/data"
+import { Upload, FileText, Download, CheckCircle2, Clock, File } from "lucide-react"
 
-import { FolderOpen, Upload, FileText, Download } from "lucide-react"
-import Header from "@/components/layout/Header"
-import { Card, Button } from "@/components/ui"
-import { MOCK_DOCUMENTS, MOCK_EMPLOYEES } from "@/lib/data"
+const CATS = ["All","Policy","Benefits","Payroll","Legal","Certification"]
 
-export default function DocumentsPage() {
-  const needsSignature = MOCK_DOCUMENTS.filter(d => d.signatureRequired && d.signedBy.length < MOCK_EMPLOYEES.length)
+export default function Documents() {
+  const [cat,setCat] = useState("All")
+  const filtered = cat==="All"?DOCUMENTS:DOCUMENTS.filter(d=>d.category===cat)
 
   return (
-    <div className="animate-in">
-      <Header
-        title="Documents"
-        subtitle="Company policies and employee documents"
-        notificationCount={needsSignature.length}
-        actions={
-          <Button variant="primary" size="sm"><Upload size={14} /> Upload</Button>
-        }
-      />
-
-      <div className="p-6 space-y-6">
-        {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total documents", value: MOCK_DOCUMENTS.length, color: "bg-blue-50 text-blue-700 border-blue-200" },
-            { label: "Needs signature", value: needsSignature.length, color: "bg-amber-50 text-amber-700 border-amber-200" },
-            { label: "Policies", value: MOCK_DOCUMENTS.filter(d => d.category === "Policy").length, color: "bg-slate-50 text-slate-600 border-slate-200" },
-            { label: "Benefits", value: MOCK_DOCUMENTS.filter(d => d.category === "Benefits").length, color: "bg-green-50 text-green-700 border-green-200" },
-          ].map(s => (
-            <Card key={s.label} className={`p-4 border ${s.color}`}>
-              <p className="text-2xl font-bold font-display">{s.value}</p>
-              <p className="text-xs font-medium mt-1">{s.label}</p>
-            </Card>
-          ))}
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+        <div>
+          <div className="page-title">Documents</div>
+          <div className="page-sub">Company policies, forms, and certifications</div>
         </div>
+        <button className="btn btn-primary"><Upload size={14}/>Upload document</button>
+      </div>
 
-        {/* Documents list */}
-        <Card className="overflow-hidden">
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <FolderOpen size={16} className="text-blue-600" />
-              All documents
-            </h3>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {MOCK_DOCUMENTS.map(doc => (
-              <div key={doc.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
-                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <FileText size={18} className="text-slate-500" />
+      <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+        {CATS.map(c=>(
+          <button key={c} onClick={()=>setCat(c)} className="btn btn-sm" style={{background:cat===c?"#1B2B4B":"#fff",color:cat===c?"#fff":"#1B2B4B"}}>{c}</button>
+        ))}
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {filtered.map(doc=>{
+          const unsigned = EMPLOYEES.filter(e=>doc.signatureRequired&&!doc.signedBy.includes(e.id)&&e.status==="active")
+          return (
+            <div key={doc.id} className="card">
+              <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:44,height:44,borderRadius:10,background:"#f4f6fa",border:"1px solid #e8ecf4",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <FileText size={20} color="#1B2B4B"/>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{doc.name}</p>
-                  <p className="text-xs text-slate-500">{doc.category} · {doc.size} · Uploaded {doc.uploadedAt}</p>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:14,color:"#1B2B4B",marginBottom:3}}>{doc.name}</div>
+                  <div style={{fontSize:12,color:"#64748b"}}>
+                    {doc.category} · {doc.size} · Uploaded by {doc.uploadedBy} · {fmtDate(doc.uploadedAt)}
+                  </div>
                 </div>
-                {doc.signatureRequired && (
-                  <span className={`badge ${doc.signedBy.length >= MOCK_EMPLOYEES.length ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                    {doc.signedBy.length}/{MOCK_EMPLOYEES.length} signed
-                  </span>
-                )}
-                <Button variant="ghost" size="sm"><Download size={14} /></Button>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  {doc.signatureRequired&&(
+                    <div style={{textAlign:"right"}}>
+                      {unsigned.length===0?(
+                        <span className="badge badge-green"><CheckCircle2 size={11}/>All signed</span>
+                      ):(
+                        <span className="badge badge-amber"><Clock size={11}/>{unsigned.length} unsigned</span>
+                      )}
+                    </div>
+                  )}
+                  <button className="btn btn-sm"><Download size={12}/>Download</button>
+                  {doc.signatureRequired&&<button className="btn btn-sm btn-primary" style={{fontSize:12}}>Send for signature</button>}
+                </div>
               </div>
-            ))}
-          </div>
-        </Card>
+              {doc.signatureRequired&&doc.signedBy.length>0&&(
+                <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
+                  <div style={{fontSize:11,color:"#94a3b8",marginBottom:6}}>Signed by {doc.signedBy.length} of {EMPLOYEES.filter(e=>e.status==="active").length} active employees</div>
+                  <div style={{height:5,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.round(doc.signedBy.length/EMPLOYEES.filter(e=>e.status==="active").length*100)}%`,background:"#16a34a",borderRadius:3}}/>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
