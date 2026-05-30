@@ -293,3 +293,27 @@ export const MOCK_PTO_BALANCES: PTOBalance[] = [
   { employeeId: "e7", year: 2026, totalDays: 15, usedDays: 6, pendingDays: 0, remainingDays: 9 },
   { employeeId: "e9", year: 2026, totalDays: 15, usedDays: 2, pendingDays: 1, remainingDays: 12 },
 ]
+
+// Aliases for backward compatibility
+export const EMPLOYEES = MOCK_EMPLOYEES
+export const SHIFTS = MOCK_SHIFTS
+
+// Additional helper functions
+export function fmtDate(dateStr: string): string {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+export function statusBadge(status: string): string {
+  const badges: Record<string, string> = {
+    active: "badge-green",
+    approved: "badge-green",
+    completed: "badge-green",
+    pending: "badge-amber",
+    scheduled: "badge-blue",
+    onboarding: "badge-amber",
+    denied: "badge-red",
+    flagged: "badge-red",
+  }
+  return badges[status] || "badge-gray"
+}
