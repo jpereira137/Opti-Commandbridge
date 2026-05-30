@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   Users, UserPlus, Clock, CalendarCheck, Star, FileText,
   Megaphone, AlertTriangle, CheckCircle2, Zap, TrendingUp,
@@ -19,9 +20,14 @@ export default function DashboardPage() {
   const metrics = getDashboardMetrics()
   const today = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })
   const activeEntries = MOCK_TIME_ENTRIES.filter(t => t.status === "active")
-  const pendingPTO = MOCK_PTO_REQUESTS.filter(r => r.status === "pending")
+  const [ptoRequests, setPtoRequests] = useState(MOCK_PTO_REQUESTS)
+  const pendingPTO = ptoRequests.filter(r => r.status === "pending")
   const incompleteOnboarding = MOCK_EMPLOYEES.filter(e => !e.onboardingComplete)
   const todayShifts = MOCK_SHIFTS.filter(s => s.date === new Date().toISOString().split("T")[0])
+  
+  const handlePTOAction = (id: string, action: "approved" | "denied") => {
+    setPtoRequests(prev => prev.map(req => req.id === id ? { ...req, status: action } : req))
+  }
 
   return (
     <div className="animate-in">
@@ -135,8 +141,8 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       <div className="flex gap-1.5">
-                        <button className="h-7 px-3 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Approve</button>
-                        <button className="h-7 px-3 text-xs font-medium bg-white text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Deny</button>
+                        <button onClick={() => handlePTOAction(req.id, "approved")} className="h-7 px-3 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Approve</button>
+                        <button onClick={() => handlePTOAction(req.id, "denied")} className="h-7 px-3 text-xs font-medium bg-white text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Deny</button>
                       </div>
                     </div>
                   ))}
@@ -276,7 +282,7 @@ export default function DashboardPage() {
           {[
             { label: "Add new employee", href: "/onboarding", icon: UserPlus, color: "bg-navy-900 text-white" },
             { label: "Approve PTO requests", href: "/pto", icon: CalendarCheck, color: "bg-amber-50 text-amber-800 border border-amber-200" },
-            { label: "View reports", href: "/reports", icon: TrendingUp, color: "bg-blue-50 text-blue-800 border border-blue-200" },
+            { label: "View reports", href: "/analytics", icon: TrendingUp, color: "bg-blue-50 text-blue-800 border border-blue-200" },
             { label: "Post announcement", href: "/announcements", icon: Megaphone, color: "bg-slate-100 text-slate-700" },
           ].map(action => (
             <Link key={action.href} href={action.href}

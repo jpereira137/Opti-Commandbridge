@@ -1,5 +1,5 @@
 "use client"
-import { REVIEWS, EMPLOYEES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
+import { MOCK_REVIEWS, EMPLOYEES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
 import { Star } from "lucide-react"
 
 function Stars({ rating }: { rating: number }) {
@@ -24,7 +24,7 @@ export default function Performance() {
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        {REVIEWS.map(r=>{
+        {MOCK_REVIEWS.map(r=>{
           const emp = getEmployee(r.employeeId)
           const reviewer = getEmployee(r.reviewerId)
           if(!emp) return null

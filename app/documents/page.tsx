@@ -1,13 +1,13 @@
 "use client"
 import { useState } from "react"
-import { DOCUMENTS, EMPLOYEES, fmtDate } from "@/lib/data"
+import { MOCK_DOCUMENTS, EMPLOYEES, fmtDate } from "@/lib/data"
 import { Upload, FileText, Download, CheckCircle2, Clock, File } from "lucide-react"
 
 const CATS = ["All","Policy","Benefits","Payroll","Legal","Certification"]
 
 export default function Documents() {
   const [cat,setCat] = useState("All")
-  const filtered = cat==="All"?DOCUMENTS:DOCUMENTS.filter(d=>d.category===cat)
+  const filtered = cat==="All"?MOCK_DOCUMENTS:MOCK_DOCUMENTS.filter(d=>d.category===cat)
 
   return (
     <div>
