@@ -1,10 +1,10 @@
 "use client"
 import { useState } from "react"
-import { TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
+import { MOCK_TIME_ENTRIES, getEmployee, fullName, initials, statusBadge, fmtDate } from "@/lib/data"
 import { CheckCircle2, Clock, Download } from "lucide-react"
 
 export default function TimeTracking() {
-  const [entries,setEntries] = useState(TIME_ENTRIES)
+  const [entries,setEntries] = useState(MOCK_TIME_ENTRIES)
   const approve = (id:string) => setEntries(prev=>prev.map(t=>t.id===id?{...t,status:"approved" as const}:t))
   const pending = entries.filter(t=>t.status==="pending").length
   const totalHours = entries.reduce((a,t)=>a+t.hours,0).toFixed(1)
