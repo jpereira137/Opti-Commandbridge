@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Users, UserPlus, Clock, CalendarCheck, Star, FileText,
   Megaphone, AlertTriangle, CheckCircle2, Zap, TrendingUp,
@@ -18,15 +18,31 @@ import { formatDistanceToNow } from "date-fns"
 
 export default function DashboardPage() {
   const metrics = getDashboardMetrics()
-  const today = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })
+  const [today, setToday] = useState("")
+  const [mounted, setMounted] = useState(false)
   const activeEntries = MOCK_TIME_ENTRIES.filter(t => t.status === "active")
   const [ptoRequests, setPtoRequests] = useState(MOCK_PTO_REQUESTS)
   const pendingPTO = ptoRequests.filter(r => r.status === "pending")
   const incompleteOnboarding = MOCK_EMPLOYEES.filter(e => !e.onboardingComplete)
   const todayShifts = MOCK_SHIFTS.filter(s => s.date === new Date().toISOString().split("T")[0])
   
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" }))
+    setMounted(true)
+  }, [])
+  
   const handlePTOAction = (id: string, action: "approved" | "denied") => {
     setPtoRequests(prev => prev.map(req => req.id === id ? { ...req, status: action } : req))
+  }
+  
+  const formatSyncTime = (dateStr: string) => {
+    if (!mounted) return "..."
+    return formatDistanceToNow(new Date(dateStr)) + " ago"
+  }
+  
+  const formatPublishDate = (dateStr: string) => {
+    if (!mounted) return "..."
+    return new Date(dateStr).toLocaleDateString()
   }
 
   return (
@@ -211,7 +227,7 @@ export default function DashboardPage() {
                       <p className="text-xs font-semibold text-slate-700">Account {ct.account}</p>
                       <p className="text-[11px] text-slate-500 truncate">{ct.department}</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        {ct.employeeCount} employees · synced {formatDistanceToNow(new Date(ct.lastSync))} ago
+                        {ct.employeeCount} employees · synced {formatSyncTime(ct.lastSync)}
                       </p>
                     </div>
                     <span className={`badge ${ct.status === "connected" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
@@ -266,7 +282,7 @@ export default function DashboardPage() {
                       {ann.pinned && <span className="text-red-600 flex-shrink-0 mt-0.5">📌</span>}
                       <div>
                         <p className="text-xs font-semibold text-slate-700 group-hover:text-navy-900 transition-colors line-clamp-1">{ann.title}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{ann.authorName} · {new Date(ann.publishedAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{ann.authorName} · {formatPublishDate(ann.publishedAt)}</p>
                       </div>
                     </div>
                   </div>

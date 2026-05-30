@@ -31,6 +31,7 @@ export default function ConnecteamPage() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   // Fallback to mock data when API isn't connected
   const acctA = MOCK_EMPLOYEES.filter(e => e.connecteamAccount === "A")
@@ -68,9 +69,15 @@ export default function ConnecteamPage() {
     const init = async () => {
       await checkApiStatus()
       setIsLoading(false)
+      setMounted(true)
     }
     init()
   }, [checkApiStatus])
+  
+  const formatSyncTime = (dateStr: string) => {
+    if (!mounted) return "..."
+    return formatDistanceToNow(new Date(dateStr)) + " ago"
+  }
 
   // Get data for each account - use API data if available, fallback to mock
   const getAccountData = (account: "A" | "B") => {
@@ -164,7 +171,7 @@ export default function ConnecteamPage() {
             <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5 text-green-600" />
             <span>
               Both Connecteam API keys are configured. 
-              {lastSyncTime && ` Last synced ${formatDistanceToNow(lastSyncTime)} ago.`}
+              {lastSyncTime && mounted && ` Last synced ${formatDistanceToNow(lastSyncTime)} ago.`}
               {!lastSyncTime && " Click \"Sync now\" to fetch live data."}
             </span>
           </InfoBox>
@@ -301,7 +308,7 @@ export default function ConnecteamPage() {
 
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
                   <span>
-                    {data.isLive ? "Live data" : "Demo data"} · Last synced {formatDistanceToNow(new Date(data.lastSync))} ago
+                    {data.isLive ? "Live data" : "Demo data"} · Last synced {formatSyncTime(data.lastSync)}
                   </span>
                   <a href="https://app.connecteam.com" target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1 text-navy-700 hover:underline font-medium">
